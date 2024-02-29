@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./wordpress:/var/www/html
+      - ./certbot:/etc/letsencrypt
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - php
+    networks:
+      - wordpress_network
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    container_name: php
+    volumes:
+      - ./wordpress:/var/www/html
+    networks:
+      - wordpress_network
+
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wp_password
+    volumes:
+      - ./mariadb:/var/lib/mysql
+    networks:
+      - wordpress_network
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot:/etc/letsencrypt
+      - ./certbot:/var/lib/letsencrypt
+      - ./nginx:/etc/nginx/conf.d
+      - ./logs:/var/log/
+    entrypoint: "/bin/sh -c 'trap exit TERM; touch /var/log/certbot_renew.log; while :; do certbot renew 2>&1 | tee -a /var/log/certbot_renew.log; sleep 12h & wait $${!}; done;'"
+    networks:
+      - wordpress_network
+
+networks:
+  wordpress_network:
+
+volumes:
+  nginx:
+  wordpress:
+  mariadb:
+  certbot:
+  logs:

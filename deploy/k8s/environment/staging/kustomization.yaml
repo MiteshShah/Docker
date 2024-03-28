@@ -9,6 +9,6 @@ replicas:
 images:
   - newName: ghcr.io/miteshshah/docker
     name: placeholder-base-image
-    newTag: 2c8990b
+    newTag: 10a2925
 resources:
   - ../../base

@@ -1,0 +1,202 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  default.conf: |
+    server {
+
+            server_name _;
+
+            index index.php index.html index.htm;
+
+            root /var/www/html;
+
+            location / {
+                    try_files $uri $uri/ /index.php$is_args$args;
+            }
+
+            location ~ \.php$ {
+                    try_files $uri =404;
+                    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                    fastcgi_pass 127.0.0.1:9000;
+                    fastcgi_index index.php;
+                    include fastcgi_params;
+                    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                    fastcgi_param PATH_INFO $fastcgi_path_info;
+            }
+
+            location ~ /\.ht {
+                    deny all;
+            }
+
+            location = /favicon.ico {
+                    log_not_found off; access_log off;
+            }
+            location = /robots.txt {
+                    log_not_found off; access_log off; allow all;
+            }
+            location ~* \.(css|gif|ico|jpeg|jpg|js|png)$ {
+                    expires max;
+                    log_not_found off;
+            }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      volumes:
+        - name: share-volumes
+          emptyDir: {}
+
+        - configMap:
+            name: nginx-conf
+          name: config
+        - name: cloudsql-instance-credentials
+          secret:
+            defaultMode: 420
+            secretName: cloudsql-instance-credentials
+      initContainers:
+        - name: volume-format
+          image: placeholder-base-image
+          command: ["cp", "-rv", "/var/www/html/.", "/mnt"]
+          volumeMounts:
+            - name: share-volumes
+              mountPath: /mnt
+      containers:
+        - name: wordpress
+          image: placeholder-base-image
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: share-volumes
+              mountPath: /var/www/html
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: 127.0.0.1:3306
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: cloudsql-db-credentials
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: cloudsql-db-credentials
+
+            - name: WORDPRESS_S3_UPLOADS_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-s3-uploads
+                  key: bucket
+
+            - name: "WORDPRESS_S3_UPLOADS_REGION"
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-s3-uploads
+                  key: region
+
+            - name: "WORDPRESS_S3_UPLOADS_KEY"
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-s3-uploads
+                  key: aws_access_id
+
+            - name: "WORDPRESS_S3_UPLOADS_SECRET"
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-s3-uploads
+                  key: aws_access_key_secret
+          ports:
+            - containerPort: 9000
+              name: fpm
+
+        - name: nginx
+          image: nginx:alpine
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          volumeMounts:
+            - mountPath: /etc/nginx/conf.d/default.conf
+              name: config
+              subPath: default.conf
+            - name: share-volumes
+              mountPath: /var/www/html
+          livenessProbe:
+            httpGet:
+              path: "/"
+              port: 80
+              httpHeaders:
+              - name: Host
+                value: localhost
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          ports:
+            - containerPort: 80
+              name: web
+
+        - name: cloudsql-proxy
+          command:
+            - /cloud_sql_proxy
+            - -instances=starlit-ship-417512:asia-south1:mysql-wordpress-sql=tcp:3306
+            - -credential_file=/secrets/cloudsql/key.json
+          image: gcr.io/cloudsql-docker/gce-proxy:1.33.2
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - NET_RAW
+            runAsUser: 2
+          volumeMounts:
+            - mountPath: /secrets/cloudsql
+              name: cloudsql-instance-credentials
+              readOnly: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress
+spec:
+  selector:
+    app: wordpress
+  ports:
+    - port: 80
+      name: web
+    - port: 9000
+      name: fpm

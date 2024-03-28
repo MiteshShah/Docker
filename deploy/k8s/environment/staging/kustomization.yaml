@@ -1,0 +1,14 @@
+## Dont change it is used in AUTOGENERATION of a specific file ##
+## Dest: deploy/k8s/environment/staging/kustomization.yaml ##
+## Source: site.j2 ##
+---
+namespace: sys-training
+replicas:
+  - name: wordpress
+    count: 2
+images:
+  - newName: ghcr.io/miteshshah/docker
+    name: placeholder-base-image
+    newTag: 66d9bf1
+resources:
+  - ../../base

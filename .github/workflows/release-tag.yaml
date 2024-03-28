@@ -46,3 +46,20 @@ jobs:
           docker build . --tag ghcr.io/miteshshah/docker:$sha
           docker push ghcr.io/miteshshah/docker:$sha
 
+
+      - name: Generate deploy manifest from Jinja template
+        uses: cuchi/jinja2-action@v1.2.2
+        with:
+          template: deploy/site.j2
+          output_file: deploy/k8s/environment/staging/kustomization.yaml
+          strict: true
+          variables: |
+            image_deploy_tag=${{ env.sha_short }}
+
+      - name: Commit deploy manifest on local repo
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -s -m "[skip ci] Generate deployment manifests"
+          git push

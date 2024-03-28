@@ -5,9 +5,10 @@
 namespace: default
 replicas:
   - name: wordpress
+    count: 1
 images:
   - newName: ghcr.io/miteshshah/docker
     name: placeholder-base-image
-    newTag: 10a2925
+    newTag: 7d74178
 resources:
   - ../../base

@@ -5,7 +5,6 @@
 namespace: default
 replicas:
   - name: wordpress
-    count: 1
 images:
   - newName: ghcr.io/miteshshah/docker
     name: placeholder-base-image

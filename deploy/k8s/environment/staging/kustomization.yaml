@@ -11,4 +11,4 @@ images:
     name: placeholder-base-image
     newTag: 7ceb348
 resources:
-  - ./k8s/base
+  - ../../base

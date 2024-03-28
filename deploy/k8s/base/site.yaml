@@ -147,15 +147,6 @@ spec:
               subPath: default.conf
             - name: share-volumes
               mountPath: /var/www/html
-          livenessProbe:
-            httpGet:
-              path: "/"
-              port: 80
-              httpHeaders:
-              - name: Host
-                value: localhost
-            initialDelaySeconds: 3
-            periodSeconds: 3
           readinessProbe:
             tcpSocket:
               port: 80
@@ -168,7 +159,7 @@ spec:
         - name: cloudsql-proxy
           command:
             - /cloud_sql_proxy
-            - -instances=starlit-ship-417512:asia-south1:mysql-wordpress-sql=tcp:3306
+            - -instances=mitesh-k8s-wordpress:asia-south1:cloud-wp-sql=tcp:3306
             - -credential_file=/secrets/cloudsql/key.json
           image: gcr.io/cloudsql-docker/gce-proxy:1.33.2
           imagePullPolicy: IfNotPresent

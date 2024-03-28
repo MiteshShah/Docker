@@ -3,7 +3,7 @@ name: build-push-wp-fpm-ghcr
 on:
   workflow_dispatch:
   push:
-    branches: [wordpress]
+    branches: [k8s]
 
 jobs:
 

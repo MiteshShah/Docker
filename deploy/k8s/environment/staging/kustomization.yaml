@@ -5,10 +5,10 @@
 namespace: sys-training
 replicas:
   - name: wordpress
-    count: 2
+    count: 1
 images:
   - newName: ghcr.io/miteshshah/docker
     name: placeholder-base-image
-    newTag: 66d9bf1
+    newTag: 266b52e
 resources:
-  - ../../base
+  - ./k8s/base

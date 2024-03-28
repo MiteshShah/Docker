@@ -2,13 +2,13 @@
 ## Dest: deploy/k8s/environment/staging/kustomization.yaml ##
 ## Source: site.j2 ##
 ---
-namespace: sys-training
+namespace: default
 replicas:
   - name: wordpress
     count: 1
 images:
   - newName: ghcr.io/miteshshah/docker
     name: placeholder-base-image
-    newTag: 266b52e
+    newTag: 7ceb348
 resources:
   - ./k8s/base

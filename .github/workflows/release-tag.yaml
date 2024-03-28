@@ -43,6 +43,6 @@ jobs:
           sha: ${{ env.sha_short }}
         run: |
           echo "Github Ref name ${TAG_NAME} $sha"
-          docker build . --tag ghcr.io/MiteshShah/Docker:$sha
-          docker push ghcr.io/MiteshShah/Docker:$sha
+          docker build . --tag ghcr.io/miteshshah/Docker:$sha
+          docker push ghcr.io/miteshshah/Docker:$sha
 
